@@ -18,7 +18,7 @@
 /* Header styling */
 .header-container {
     background: linear-gradient(135deg, #0a2e65 0%, #104996 100%);
-    padding: 1.5rem 0.5rem 2rem 0.5rem;
+    padding: 1.2rem 0.5rem 1.5rem 0.5rem;
     color: white;
     border-radius: 0 0 10px 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -40,11 +40,11 @@
 }
 
 .header-title {
-    font-weight: 700;
-    font-size: 1.5rem; /* Even smaller font size for title */
-    margin-bottom: 0.5rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    letter-spacing: 0.5px;
+    font-weight: 600;
+    font-size: 1.2rem; /* Significantly smaller font size */
+    margin-bottom: 0.4rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.3px;
     font-family: 'Arial', sans-serif;
     line-height: 1.2;
     text-align: center;
@@ -52,11 +52,11 @@
 }
 
 .header-subtitle {
-    font-weight: 500;
+    font-weight: 400;
     opacity: 0.95;
-    font-size: 0.9rem; /* Slightly smaller subtitle */
-    margin-bottom: 0.8rem;
-    letter-spacing: 0.5px;
+    font-size: 0.8rem; /* Much smaller subtitle */
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.3px;
     font-family: 'Arial', sans-serif;
     text-align: center;
     width: 100%;
@@ -66,16 +66,16 @@
 .profile-container {
     display: flex;
     justify-content: center;
-    margin-top: 0.8rem;
+    margin-top: 0.6rem;
     width: 100%;
 }
 
 .profile-image {
-    width: 90px;
-    height: 90px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     object-fit: cover;
-    border: 4px solid rgba(255, 255, 255, 0.9);
+    border: 3px solid rgba(255, 255, 255, 0.9);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
@@ -232,7 +232,7 @@ div[data-baseweb="select"] {
 /* Mobile optimization */
 @media (max-width: 768px) {
     .header-title {
-        font-size: 1.2rem; /* Even smaller on mobile */
+        font-size: 1rem; /* Very small on mobile */
         text-align: center;
         width: 100%;
         padding: 0 5px;
@@ -241,14 +241,14 @@ div[data-baseweb="select"] {
     }
     
     .header-subtitle {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         text-align: center;
         width: 100%;
         padding: 0 5px;
     }
     
     .header-container {
-        padding: 1.2rem 0.3rem 1.8rem 0.3rem;
+        padding: 1rem 0.3rem 1.4rem 0.3rem;
         margin-top: 35px; /* Slightly less margin on mobile */
     }
     
@@ -285,8 +285,8 @@ div[data-baseweb="select"] {
     
     /* Smaller profile image on mobile */
     .profile-image {
-        width: 70px;
-        height: 70px;
+        width: 60px;
+        height: 60px;
     }
 }
 
