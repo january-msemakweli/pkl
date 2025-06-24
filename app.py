@@ -8,17 +8,110 @@ import subprocess
 import plotly.graph_objects as go
 import plotly.express as px
 from copy import deepcopy
+import base64
+from datetime import datetime
+import time
+from PIL import Image
 
 # Set page title and configuration
 st.set_page_config(
-    page_title="Diabetes Prediction App",
-    layout="centered"
+    page_title="Sukari Predictive Model",
+    layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
-# Page title and description
-st.title("Diabetes Prediction Tool")
-st.markdown("Enter patient information to predict diabetes risk")
-st.markdown("---")
+# Load and apply custom CSS
+with open('style.css', 'r') as f:
+    css = f.read()
+st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
+
+# Custom HTML components
+def custom_header():
+    # Load profile image
+    try:
+        profile_img_path = "Janu.jpg"
+        if os.path.exists(profile_img_path):
+            # Convert image to base64 for embedding
+            with open(profile_img_path, "rb") as img_file:
+                img_data = base64.b64encode(img_file.read()).decode()
+            
+            img_html = f'<img src="data:image/jpeg;base64,{img_data}" class="profile-image" alt="January G. Msemakwelj">'
+        else:
+            img_html = ""
+    except Exception as e:
+        img_html = ""
+        st.error(f"Error loading profile image: {str(e)}")
+    
+    header_html = f"""
+    <div class="header-container">
+        <div class="header-content">
+            <h1 class="header-title">SUKARI PREDICTIVE MODEL</h1>
+            <p class="header-subtitle">Made by January G. Msemakweli</p>
+            <div class="profile-container">{img_html}</div>
+        </div>
+    </div>
+    """
+    st.markdown(header_html, unsafe_allow_html=True)
+
+def custom_card(title, content, key=None):
+    card_html = f"""
+    <div class="card" id="{key if key else ''}">
+        <h3>{title}</h3>
+        <div>{content}</div>
+    </div>
+    """
+    st.markdown(card_html, unsafe_allow_html=True)
+
+def custom_metric(label, value, suffix="", prefix=""):
+    metric_html = f"""
+    <div class="metric-container">
+        <div class="metric-value">{prefix}{value}{suffix}</div>
+        <div class="metric-label">{label}</div>
+    </div>
+    """
+    return metric_html
+
+def animated_text(text, tag="p", classname="fade-in"):
+    return f'<{tag} class="{classname}">{text}</{tag}>'
+
+def risk_gauge(risk_percent):
+    fig = go.Figure(go.Indicator(
+        mode = "gauge+number",
+        value = risk_percent,
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        title = {'text': "Diabetes Risk", 'font': {'size': 22}},
+        gauge = {
+            'axis': {'range': [0, 100], 'tickwidth': 1},
+            'bar': {'color': '#1e5eff' if risk_percent < 30 else ('#ff9800' if risk_percent < 70 else '#f44336')},
+            'bgcolor': "rgba(0,0,0,0)",
+            'borderwidth': 2,
+            'bordercolor': "gray",
+            'steps': [
+                {'range': [0, 30], 'color': 'rgba(0, 204, 150, 0.3)'},
+                {'range': [30, 70], 'color': 'rgba(255, 165, 0, 0.3)'},
+                {'range': [70, 100], 'color': 'rgba(255, 0, 0, 0.3)'}
+            ],
+            'threshold': {
+                'line': {'color': "red", 'width': 4},
+                'thickness': 0.75,
+                'value': 50
+            }
+        }
+    ))
+    
+    fig.update_layout(
+        height=180,
+        margin=dict(l=10, r=10, t=30, b=10),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font={'family': "Arial"}
+    )
+    
+    return fig
+
+# Tooltip helper
+def tooltip(text, tooltip_text):
+    return f'<span class="tooltip">{text}<span class="tooltiptext">{tooltip_text}</span></span>'
 
 # Function to check if model exists and is compatible
 def check_model():
@@ -47,15 +140,27 @@ def check_model():
 
 # Button to run the model script if needed
 def run_model_script():
-    st.info("Training the model... This might take a moment.")
+    progress_text = "Training the model... Please wait."
+    my_bar = st.progress(0, text=progress_text)
+    
     try:
+        # Simulate training progress
+        for percent_complete in range(0, 101, 10):
+            time.sleep(0.1)  # Simulate work being done
+            my_bar.progress(percent_complete, text=f"{progress_text} ({percent_complete}%)")
+            
         result = subprocess.run([sys.executable, 'diabetes_model.py'], 
                               capture_output=True, text=True, check=True)
-        st.success("Model trained successfully! Refresh the page to use the prediction tool.")
-        st.code(result.stdout)
+        my_bar.empty()
+        
+        st.success("✅ Model trained successfully! Refresh the page to use the prediction tool.")
+        with st.expander("View training details"):
+            st.code(result.stdout)
     except subprocess.CalledProcessError as e:
-        st.error(f"Error training model: {e}")
-        st.code(e.stderr)
+        my_bar.empty()
+        st.error(f"❌ Error training model: {e}")
+        with st.expander("View error details"):
+            st.code(e.stderr)
 
 # Function to generate what-if scenarios
 def generate_what_if_scenarios(base_input, model):
@@ -72,7 +177,7 @@ def generate_what_if_scenarios(base_input, model):
         bmi_changes = []
         
         # Create multiple BMI reduction scenarios
-        for reduction in [0.5, 1, 2, 3]:
+        for reduction in [1, 3]:
             if base_input['BMI'].values[0] - reduction > 18.5:  # Ensure BMI doesn't go below healthy range
                 modified_input = base_input.copy()
                 modified_input['BMI'] = base_input['BMI'] - reduction
@@ -98,17 +203,6 @@ def generate_what_if_scenarios(base_input, model):
     current_activity = base_input['PhysicalActivityLevel'].values[0]
     
     if current_activity == "Low":
-        # Improve to moderate
-        modified_input = base_input.copy()
-        modified_input['PhysicalActivityLevel'] = "Moderate"
-        prob = model.predict_proba(modified_input)[0][1]
-        scenarios.append({
-            "scenario": "Increase activity to Moderate", 
-            "risk": prob * 100,
-            "factor": "Activity",
-            "change": 1
-        })
-        
         # Improve to high
         modified_input = base_input.copy()
         modified_input['PhysicalActivityLevel'] = "High"
@@ -118,17 +212,6 @@ def generate_what_if_scenarios(base_input, model):
             "risk": prob * 100,
             "factor": "Activity",
             "change": 2
-        })
-    elif current_activity == "Moderate":
-        # Improve to high
-        modified_input = base_input.copy()
-        modified_input['PhysicalActivityLevel'] = "High"
-        prob = model.predict_proba(modified_input)[0][1]
-        scenarios.append({
-            "scenario": "Increase activity to High", 
-            "risk": prob * 100,
-            "factor": "Activity",
-            "change": 1
         })
     
     # Quit smoking
@@ -146,16 +229,6 @@ def generate_what_if_scenarios(base_input, model):
     # Cholesterol improvement
     if base_input['CholesterolLevel'].values[0] == "High":
         modified_input = base_input.copy()
-        modified_input['CholesterolLevel'] = "Borderline"
-        prob = model.predict_proba(modified_input)[0][1]
-        scenarios.append({
-            "scenario": "Improve cholesterol to Borderline", 
-            "risk": prob * 100,
-            "factor": "Cholesterol",
-            "change": -1
-        })
-        
-        modified_input = base_input.copy()
         modified_input['CholesterolLevel'] = "Normal"
         prob = model.predict_proba(modified_input)[0][1]
         scenarios.append({
@@ -164,35 +237,6 @@ def generate_what_if_scenarios(base_input, model):
             "factor": "Cholesterol",
             "change": -2
         })
-    elif base_input['CholesterolLevel'].values[0] == "Borderline":
-        modified_input = base_input.copy()
-        modified_input['CholesterolLevel'] = "Normal"
-        prob = model.predict_proba(modified_input)[0][1]
-        scenarios.append({
-            "scenario": "Improve cholesterol to Normal", 
-            "risk": prob * 100,
-            "factor": "Cholesterol",
-            "change": -1
-        })
-    
-    # Blood pressure improvement
-    if base_input['SystolicBP'].values[0] > 120 or base_input['DiastolicBP'].values[0] > 80:
-        modified_input = base_input.copy()
-        
-        # Create a moderate reduction
-        systolic_reduction = min(10, base_input['SystolicBP'].values[0] - 120) if base_input['SystolicBP'].values[0] > 120 else 0
-        diastolic_reduction = min(5, base_input['DiastolicBP'].values[0] - 80) if base_input['DiastolicBP'].values[0] > 80 else 0
-        
-        if systolic_reduction > 0 or diastolic_reduction > 0:
-            modified_input['SystolicBP'] = base_input['SystolicBP'] - systolic_reduction
-            modified_input['DiastolicBP'] = base_input['DiastolicBP'] - diastolic_reduction
-            prob = model.predict_proba(modified_input)[0][1]
-            scenarios.append({
-                "scenario": f"Reduce BP by {systolic_reduction}/{diastolic_reduction} mmHg", 
-                "risk": prob * 100,
-                "factor": "Blood Pressure",
-                "change": -(systolic_reduction + diastolic_reduction)/2
-            })
     
     # Combined best case scenario (implement all positive changes)
     best_input = base_input.copy()
@@ -229,7 +273,7 @@ def generate_what_if_scenarios(base_input, model):
     if changes_made:
         prob = model.predict_proba(best_input)[0][1]
         scenarios.append({
-            "scenario": "Optimal changes", 
+            "scenario": "All optimal changes", 
             "risk": prob * 100,
             "factor": "Combined",
             "change": -5  # Symbolic value for sorting
@@ -237,40 +281,51 @@ def generate_what_if_scenarios(base_input, model):
     
     return scenarios
 
+# Apply the custom header
+custom_header()
+
 # Check if model is available and compatible
 model_ok, model_or_error = check_model()
 
 if not model_ok:
-    st.error(f"Error with model: {model_or_error}")
-    st.warning("Please train the model first by clicking the button below")
-    if st.button("Train Model"):
+    st.markdown("""
+    <div class="error-box">
+        <h3>⚠️ Model Not Available</h3>
+        <p>Error: {}</p>
+        <p>Please train the model first by clicking the button below.</p>
+    </div>
+    """.format(model_or_error), unsafe_allow_html=True)
+    
+    if st.button("Train Model", key="train_model_button"):
         run_model_script()
 else:
     model = model_or_error
-    # Create form for user inputs
+    
+    # Main layout - single page with clear sections
+    st.markdown('<div class="section-title">Patient Information</div>', unsafe_allow_html=True)
+    
+    # Patient Information form - optimized for mobile
     with st.form("prediction_form"):
-        st.subheader("Patient Information")
-        
-        # Create two columns for form fields
+        # Use more flexible column layout for better mobile compatibility
         col1, col2 = st.columns(2)
         
         with col1:
-            age = st.number_input("Age", min_value=0, max_value=120, value=40)
+            age = st.number_input("Age", min_value=18, max_value=100, value=40)
             gender = st.selectbox("Gender", options=["M", "F"])
-            bmi = st.number_input("BMI", min_value=10.0, max_value=50.0, value=25.0, step=0.1)
-            systolic_bp = st.number_input("Systolic BP", min_value=80, max_value=200, value=120)
-            diastolic_bp = st.number_input("Diastolic BP", min_value=40, max_value=150, value=80)
+            bmi = st.number_input("BMI", min_value=15.0, max_value=50.0, value=25.0, step=0.1)
+            systolic_bp = st.number_input("Systolic BP", min_value=90, max_value=200, value=120)
+            diastolic_bp = st.number_input("Diastolic BP", min_value=50, max_value=150, value=80)
         
         with col2:
-            smoker = st.selectbox("Smoker", options=["Yes", "No"])
-            physical_activity = st.selectbox("Physical Activity Level", options=["Low", "Moderate", "High"])
-            cholesterol = st.selectbox("Cholesterol Level", options=["Normal", "Borderline", "High"])
-            family_history = st.selectbox("Family History of Diabetes", options=["Yes", "No"])
+            smoker = st.selectbox("Smoker", options=["No", "Yes"])
+            physical_activity = st.selectbox("Activity Level", options=["Low", "Moderate", "High"])
+            cholesterol = st.selectbox("Cholesterol", options=["Normal", "Borderline", "High"])
+            family_history = st.selectbox("Family History", options=["No", "Yes"])
         
-        # Submit button
-        submit_button = st.form_submit_button(label="Predict Diabetes Risk")
+        # Submit button - centered
+        submit_button = st.form_submit_button(label="Calculate Risk")
     
-    # Make prediction when form is submitted
+    # Results section - only shown after prediction
     if submit_button:
         try:
             # Create a dataframe with the user input
@@ -287,56 +342,117 @@ else:
             })
             
             # Make prediction
-            prediction = model.predict(user_input)
+            prediction = model.predict(user_input)[0]
             probability = model.predict_proba(user_input)[0][1]
-            
-            # Display results
-            st.markdown("---")
-            st.subheader("Prediction Results")
-            
-            # Display prediction
-            if prediction[0] == 1:
-                st.error(f"⚠️ **High Risk**: This patient is predicted to develop diabetes.")
-            else:
-                st.success(f"✅ **Low Risk**: This patient is predicted to not develop diabetes.")
-            
-            # Display probability
-            st.write(f"Probability of developing diabetes: {probability:.2%}")
-            
-            # Risk explanation based on input factors
-            st.subheader("Risk Factor Analysis")
-            risk_factors = []
-            
-            if bmi > 30:
-                risk_factors.append("- High BMI (>30) indicates obesity, a significant risk factor")
-            if systolic_bp > 140 or diastolic_bp > 90:
-                risk_factors.append("- Elevated blood pressure can increase diabetes risk")
-            if smoker == "Yes":
-                risk_factors.append("- Smoking is associated with increased diabetes risk")
-            if physical_activity == "Low":
-                risk_factors.append("- Low physical activity increases diabetes risk")
-            if cholesterol == "High":
-                risk_factors.append("- High cholesterol is associated with increased diabetes risk")
-            if family_history == "Yes":
-                risk_factors.append("- Family history of diabetes increases risk")
-            
-            if risk_factors:
-                st.markdown("\n".join(risk_factors))
-            else:
-                st.markdown("No significant risk factors identified from the input.")
-                
-            # Generate what-if scenarios
-            st.markdown("---")
-            st.subheader("Risk Projection Graph")
-            st.markdown("This graph shows how changes to lifestyle factors could affect diabetes risk over time")
-            
+            risk_percent = round(probability * 100, 1)
             scenarios = generate_what_if_scenarios(user_input, model)
-            scenario_df = pd.DataFrame(scenarios)
             
-            # Sort scenarios by risk
-            scenario_df = scenario_df.sort_values(by="risk", ascending=False)
+            # Display section divider
+            st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">Risk Assessment Results</div>', unsafe_allow_html=True)
             
-            # Create a visualization showing risk trajectories
+            # Risk level
+            if risk_percent >= 70:
+                st.markdown('<div class="error-box"><h2>⚠️ High Risk</h2><p>This patient has a high risk of developing diabetes.</p></div>', unsafe_allow_html=True)
+            elif risk_percent >= 30:
+                st.markdown('<div class="warning-box"><h2>⚡ Moderate Risk</h2><p>This patient has a moderate risk of developing diabetes.</p></div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="success-box"><h2>✅ Low Risk</h2><p>This patient has a low risk of developing diabetes.</p></div>', unsafe_allow_html=True)
+            
+            # Main result - now in 1 row for better mobile layout
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Risk gauge
+                st.plotly_chart(risk_gauge(risk_percent), use_container_width=True)
+            
+            with col2:
+                # Probability as text
+                st.markdown(f"<div style='text-align: center; margin: 20px 0;'><span style='font-weight: 500;'>Risk probability: </span><span style='font-size: 1.8rem; font-weight: 700; color: {'#f44336' if risk_percent >= 70 else '#ff9800' if risk_percent >= 30 else '#00cc88'};'>{risk_percent}%</span></div>", unsafe_allow_html=True)
+            
+                # Key risk factors heading
+                st.markdown("<h4>Key Risk Factors</h4>", unsafe_allow_html=True)
+                
+                # Build risk factor tags
+                risk_factors_html = "<div style='margin-top: 10px;'>"
+                
+                # BMI
+                if bmi >= 30:
+                    risk_factors_html += f"<div class='risk-tag high'>BMI: {bmi:.1f} (Obese)</div>"
+                elif bmi >= 25:
+                    risk_factors_html += f"<div class='risk-tag medium'>BMI: {bmi:.1f} (Overweight)</div>"
+                else:
+                    risk_factors_html += f"<div class='risk-tag low'>BMI: {bmi:.1f} (Healthy)</div>"
+                
+                # Blood pressure
+                if systolic_bp >= 140 or diastolic_bp >= 90:
+                    risk_factors_html += f"<div class='risk-tag high'>BP: {systolic_bp}/{diastolic_bp}</div>"
+                elif systolic_bp >= 120 or diastolic_bp >= 80:
+                    risk_factors_html += f"<div class='risk-tag medium'>BP: {systolic_bp}/{diastolic_bp}</div>"
+                else:
+                    risk_factors_html += f"<div class='risk-tag low'>BP: {systolic_bp}/{diastolic_bp}</div>"
+                
+                # Smoking
+                if smoker == "Yes":
+                    risk_factors_html += "<div class='risk-tag high'>Smoker</div>"
+                
+                # Activity
+                if physical_activity == "Low":
+                    risk_factors_html += "<div class='risk-tag high'>Low Activity</div>"
+                elif physical_activity == "Moderate":
+                    risk_factors_html += "<div class='risk-tag medium'>Moderate Activity</div>"
+                
+                # Cholesterol
+                if cholesterol == "High":
+                    risk_factors_html += "<div class='risk-tag high'>High Cholesterol</div>"
+                elif cholesterol == "Borderline":
+                    risk_factors_html += "<div class='risk-tag medium'>Borderline Cholesterol</div>"
+                
+                # Family History
+                if family_history == "Yes":
+                    risk_factors_html += "<div class='risk-tag high'>Family History</div>"
+                
+                risk_factors_html += "</div>"
+                st.markdown(risk_factors_html, unsafe_allow_html=True)
+            
+            # Recommendations section
+            st.subheader("Recommendations")
+            recommendations = []
+            
+            if bmi >= 25:
+                recommendations.append("🔻 Reduce BMI to healthy range (18.5-24.9)")
+            
+            if systolic_bp >= 120 or diastolic_bp >= 80:
+                recommendations.append("💗 Lower blood pressure below 120/80")
+            
+            if smoker == "Yes":
+                recommendations.append("🚭 Quit smoking")
+            
+            if physical_activity == "Low":
+                recommendations.append("🏃 Increase physical activity level")
+            
+            if cholesterol == "High" or cholesterol == "Borderline":
+                recommendations.append("🥗 Improve diet to reduce cholesterol")
+            
+            if not recommendations:
+                recommendations.append("✅ Maintain current healthy lifestyle")
+            
+            for rec in recommendations:
+                st.markdown(f"<div style='padding: 5px 0;'>{rec}</div>", unsafe_allow_html=True)
+            
+            # What-if scenarios section
+            st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">Risk Projection Graphs</div>', unsafe_allow_html=True)
+            
+            # Graphs - now stacked for better mobile view
+            
+            # First risk scenarios chart
+            st.markdown("<h4>Impact of Lifestyle Changes</h4>", unsafe_allow_html=True)
+            
+            # Sort scenarios by risk for the chart
+            scenario_df = pd.DataFrame(scenarios).sort_values(by="risk", ascending=False)
+            
+            # Create the horizontal bar chart for scenarios
             fig = go.Figure()
             
             # Add vertical line for diabetes threshold (50% risk)
@@ -347,17 +463,6 @@ else:
                 x1=50,
                 y1=len(scenario_df) - 0.5,
                 line=dict(color="red", width=2, dash="dash"),
-            )
-            
-            # Add text annotation for threshold
-            fig.add_annotation(
-                x=50,
-                y=len(scenario_df),
-                text="Diabetes Risk Threshold",
-                showarrow=True,
-                arrowhead=1,
-                ax=20,
-                ay=0
             )
             
             # Create the horizontal bar chart
@@ -377,35 +482,34 @@ else:
             
             # Update layout
             fig.update_layout(
-                title="Diabetes Risk by Scenario",
                 xaxis_title="Risk Percentage (%)",
                 yaxis_title="Scenario",
-                height=400 + len(scenario_df) * 30,
+                height=300,
                 xaxis=dict(range=[0, 100]),
-                margin=dict(l=20, r=20, t=40, b=20)
+                margin=dict(l=10, r=10, t=10, b=10),
+                plot_bgcolor='rgba(0,0,0,0)'
             )
             
             st.plotly_chart(fig, use_container_width=True)
             
-            # Add trend analysis graph - show risk trajectory over time
-            st.subheader("Risk Trajectory Over Time")
-            st.markdown("This shows how risk might change over months with lifestyle modifications")
+            # Second risk trajectory chart
+            st.markdown("<h4>Risk Trajectory Over Time</h4>", unsafe_allow_html=True)
             
             # Create data for the trend lines
-            months = list(range(0, 25, 3))  # 0, 3, 6, 9, 12, 15, 18, 21, 24 months
+            months = list(range(0, 25, 6))  # Fewer points for mobile: 0, 6, 12, 18, 24 months
             
             # Base trend - no change
-            base_risk = [probability * 100] * len(months)
+            base_risk = [risk_percent] * len(months)
             
-            # Generate other improvement trends
+            # Generate improvement trends
             trends = {
                 "No changes": base_risk,
                 "Moderate improvements": [
-                    max(probability * 100 * (1 - 0.1 * min(month/6, 1)), 10) 
+                    max(risk_percent * (1 - 0.1 * min(month/6, 1)), 10) 
                     for month in months
                 ],
-                "Significant lifestyle changes": [
-                    max(probability * 100 * (1 - 0.25 * min(month/12, 1)), 5) 
+                "Significant changes": [
+                    max(risk_percent * (1 - 0.25 * min(month/12, 1)), 5) 
                     for month in months
                 ]
             }
@@ -424,7 +528,7 @@ else:
             )
             
             # Plot each trend line
-            colors = {"No changes": "red", "Moderate improvements": "orange", "Significant lifestyle changes": "green"}
+            colors = {"No changes": "#f44336", "Moderate improvements": "#ff9800", "Significant changes": "#00cc88"}
             
             for trend, values in trends.items():
                 fig2.add_trace(go.Scatter(
@@ -438,24 +542,30 @@ else:
             
             # Update layout
             fig2.update_layout(
-                title="Diabetes Risk Trajectory Over Time",
                 xaxis_title="Months",
                 yaxis_title="Risk Percentage (%)",
-                height=500,
+                height=300,
                 xaxis=dict(tickmode='array', tickvals=months),
-                yaxis=dict(range=[0, 100]),
-                legend=dict(y=0.99, x=0.01, bgcolor='rgba(255,255,255,0.8)'),
-                hovermode="x unified"
+                yaxis=dict(range=[0, max(100, risk_percent * 1.1)]),
+                legend=dict(orientation="h", y=1.1, x=0.0),
+                hovermode="x unified",
+                plot_bgcolor='rgba(0,0,0,0)',
+                margin=dict(l=10, r=10, t=40, b=10)
             )
             
             st.plotly_chart(fig2, use_container_width=True)
-            
-            # Disclaimer
-            st.markdown("---")
-            st.caption("Disclaimer: This is a simplified model for educational purposes only. The risk projections are estimates based on general trends, not personalized medical advice. Always consult healthcare professionals for medical guidance.")
             
         except Exception as e:
             st.error(f"Error making prediction: {str(e)}")
             st.warning("There might be compatibility issues with the model. Try retraining it.")
             if st.button("Retrain Model"):
-                run_model_script() 
+                run_model_script()
+            
+# Footer
+st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+st.markdown("""
+<div class="footer">
+    <p>© 2023 Sukari Predictive Model | This application is for educational purposes only</p>
+    <p>Always consult healthcare professionals for medical advice</p>
+</div>
+""", unsafe_allow_html=True) 
