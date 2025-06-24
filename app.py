@@ -35,7 +35,7 @@ def custom_header():
             with open(profile_img_path, "rb") as img_file:
                 img_data = base64.b64encode(img_file.read()).decode()
             
-            img_html = f'<img src="data:image/jpeg;base64,{img_data}" class="profile-image" alt="January G. Msemakwelj">'
+            img_html = f'<img src="data:image/jpeg;base64,{img_data}" class="profile-image" alt="January G. Msemakweli">'
         else:
             img_html = ""
     except Exception as e:
@@ -45,7 +45,7 @@ def custom_header():
     header_html = f"""
     <div class="header-container">
         <div class="header-content">
-            <h1 class="header-title">SUKARI PREDICTIVE MODEL</h1>
+            <h1 class="header-title">Sukari Predictive Model</h1>
             <p class="header-subtitle">Made by January G. Msemakweli</p>
             <div class="profile-container">{img_html}</div>
         </div>
