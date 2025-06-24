@@ -1,0 +1,11 @@
+PatientID,Age,Gender,BMI,SystolicBP,DiastolicBP,Smoker,PhysicalActivityLevel,CholesterolLevel,FamilyHistory,DevelopedDiabetes
+P001,45,M,28.4,130,85,Yes,Low,High,Yes,Yes
+P002,34,F,22.1,120,80,No,Moderate,Normal,No,No
+P003,50,F,32.0,145,95,Yes,Low,High,Yes,Yes
+P004,29,M,24.7,118,75,No,High,Normal,No,No
+P005,60,F,35.6,160,100,Yes,Low,High,Yes,Yes
+P006,42,M,26.3,125,82,No,Moderate,Normal,No,No
+P007,55,F,30.2,140,90,Yes,Low,High,Yes,Yes
+P008,38,M,23.5,122,78,No,High,Normal,No,No
+P009,48,F,29.8,135,88,Yes,Moderate,Borderline,Yes,Yes
+P010,31,F,21.0,115,70,No,High,Normal,No,No

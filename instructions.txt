@@ -1,0 +1,36 @@
+I have a CSV file called `data.csv` that contains health records for 10 patients. Each row includes demographic and health data, and whether the patient eventually developed diabetes.
+
+Columns:
+- PatientID: Unique identifier
+- Age: Age in years
+- Gender: M or F
+- BMI: Body Mass Index
+- SystolicBP: Systolic Blood Pressure
+- DiastolicBP: Diastolic Blood Pressure
+- Smoker: Yes/No
+- PhysicalActivityLevel: Low/Moderate/High
+- CholesterolLevel: Normal/Borderline/High
+- FamilyHistory: Yes/No (if diabetes is in family)
+- DevelopedDiabetes: Yes/No (target column)
+
+**Goal**: Build a full predictive model that predicts whether a patient will develop diabetes (`DevelopedDiabetes`) based on the other features.
+
+**Instructions**:
+1. Load and explore the dataset
+2. Handle categorical variables (e.g., Gender, Smoker, etc.)
+3. Convert `DevelopedDiabetes` to binary (1 = Yes, 0 = No)
+4. Split the data into training and test sets (e.g., 80/20)
+5. Train a logistic regression model (or another model if better suited)
+6. Evaluate the model using accuracy and confusion matrix
+7. Make predictions on test data and print results
+8. Plot feature importance or coefficients
+9. Save the model as a `.pkl` file
+
+Please write complete working code using Python, pandas, and scikit-learn.
+
+
+Then create a simple Streamlit app that:
+- Loads the trained model from the `.pkl` file
+- Provides a form for the user to input new patient data: Age, Gender, BMI, SystolicBP, DiastolicBP, Smoker, PhysicalActivityLevel, CholesterolLevel, FamilyHistory
+- Uses the model to predict if the patient will develop diabetes
+- Displays the result clearly on the screen
